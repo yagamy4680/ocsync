@@ -116,6 +116,7 @@ int csync_create(CSYNC **csync, const char *local, const char *remote) {
   ctx->options.max_time_difference = MAX_TIME_DIFFERENCE;
   ctx->options.unix_extensions = 0;
   ctx->options.with_conflict_copys=false;
+  ctx->options.local_only_mode = false;
 
   ctx->pwd.uid = getuid();
   ctx->pwd.euid = geteuid();
@@ -259,7 +260,7 @@ int csync_init(CSYNC *ctx) {
   ctx->local.type = LOCAL_REPLICA;
 
   /* check for uri */
-  if (csync_fnmatch("*://*", ctx->remote.uri, 0) == 0) {
+  if ( !ctx->options.local_only_mode && csync_fnmatch("*://*", ctx->remote.uri, 0) == 0) {
     size_t len;
     len = strstr(ctx->remote.uri, "://") - ctx->remote.uri;
     /* get protocol */
@@ -292,23 +293,25 @@ retry_vio_init:
     ctx->remote.type = LOCAL_REPLICA;
   }
 
-  timediff = csync_timediff(ctx);
-  if (timediff > ctx->options.max_time_difference) {
-    CSYNC_LOG(CSYNC_LOG_PRIORITY_FATAL,
-        "Clock skew detected. The time difference is greater than %d seconds!",
-        ctx->options.max_time_difference);
-    rc = -1;
-    goto out;
-  } else if (timediff < 0) {
-    CSYNC_LOG(CSYNC_LOG_PRIORITY_FATAL, "Synchronisation is not possible!");
-    rc = -1;
-    goto out;
-  }
+  if( !ctx->options.local_only_mode ) {
+      timediff = csync_timediff(ctx);
+      if (timediff > ctx->options.max_time_difference) {
+          CSYNC_LOG(CSYNC_LOG_PRIORITY_FATAL,
+                    "Clock skew detected. The time difference is greater than %d seconds!",
+                    ctx->options.max_time_difference);
+          rc = -1;
+          goto out;
+      } else if (timediff < 0) {
+          CSYNC_LOG(CSYNC_LOG_PRIORITY_FATAL, "Synchronisation is not possible!");
+          rc = -1;
+          goto out;
+      }
 
-  if (csync_unix_extensions(ctx) < 0) {
-    CSYNC_LOG(CSYNC_LOG_PRIORITY_FATAL, "Could not detect filesystem type.");
-    rc = -1;
-    goto out;
+      if (csync_unix_extensions(ctx) < 0) {
+          CSYNC_LOG(CSYNC_LOG_PRIORITY_FATAL, "Could not detect filesystem type.");
+          rc = -1;
+          goto out;
+      }
   }
 
   if (c_rbtree_create(&ctx->local.tree, _key_cmp, _data_cmp) < 0) {
@@ -745,6 +748,29 @@ int csync_enable_conflictcopys(CSYNC* ctx){
   ctx->options.with_conflict_copys=true;
 
   return 0;
+}
+
+int csync_set_local_only( CSYNC *ctx, bool local_only ) {
+    if (ctx == NULL) {
+        return -1;
+    }
+
+    if (ctx->status & CSYNC_STATUS_INIT) {
+        fprintf(stderr, "This function must be called before initialization.");
+        return -1;
+    }
+
+    ctx->options.local_only_mode=local_only;
+
+    return 0;
+}
+
+bool csync_get_local_only( CSYNC *ctx ) {
+    if (ctx == NULL) {
+        return -1;
+    }
+
+    return ctx->options.local_only_mode;
 }
 
 /* vim: set ts=8 sw=2 et cindent: */
