@@ -262,7 +262,7 @@ int csync_init(CSYNC *ctx) {
   ctx->local.type = LOCAL_REPLICA;
 
   /* check for uri */
-  if ( !ctx->options.local_only_mode && csync_fnmatch("*://*", ctx->remote.uri, 0) == 0) {
+  if ( /* !ctx->options.local_only_mode && */ csync_fnmatch("*://*", ctx->remote.uri, 0) == 0) {
     size_t len;
     len = strstr(ctx->remote.uri, "://") - ctx->remote.uri;
     /* get protocol */
@@ -368,24 +368,25 @@ int csync_update(CSYNC *ctx) {
   }
 
   /* update detection for remote replica */
-  csync_gettime(&start);
-  ctx->current = REMOTE_REPLCIA;
-  ctx->replica = ctx->remote.type;
+  if( ! ctx->options.local_only_mode ) {
+      csync_gettime(&start);
+      ctx->current = REMOTE_REPLCIA;
+      ctx->replica = ctx->remote.type;
 
-  rc = csync_ftw(ctx, ctx->remote.uri, csync_walker, MAX_DEPTH);
+      rc = csync_ftw(ctx, ctx->remote.uri, csync_walker, MAX_DEPTH);
 
-  csync_gettime(&finish);
+      csync_gettime(&finish);
 
-  CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG,
-      "Update detection for remote replica took %.2f seconds "
-      "walking %zu files.",
-      c_secdiff(finish, start), c_rbtree_size(ctx->remote.tree));
-  csync_memstat_check();
+      CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG,
+                "Update detection for remote replica took %.2f seconds "
+                "walking %zu files.",
+                c_secdiff(finish, start), c_rbtree_size(ctx->remote.tree));
+      csync_memstat_check();
 
-  if (rc < 0) {
-    return -1;
+      if (rc < 0) {
+          return -1;
+      }
   }
-
   ctx->status |= CSYNC_STATUS_UPDATE;
 
   return 0;
