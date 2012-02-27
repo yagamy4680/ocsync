@@ -262,7 +262,7 @@ int csync_init(CSYNC *ctx) {
   ctx->local.type = LOCAL_REPLICA;
 
   /* check for uri */
-  if ( /* !ctx->options.local_only_mode && */ csync_fnmatch("*://*", ctx->remote.uri, 0) == 0) {
+  if ( !ctx->options.local_only_mode && csync_fnmatch("*://*", ctx->remote.uri, 0) == 0) {
     size_t len;
     len = strstr(ctx->remote.uri, "://") - ctx->remote.uri;
     /* get protocol */
