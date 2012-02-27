@@ -72,6 +72,14 @@ typedef int (*csync_auth_callback) (const char *prompt, char *buf, size_t len,
  */
 typedef struct csync_s CSYNC;
 
+struct csync_update_metrics_s {
+    int64_t  filesSeen;
+    int64_t  filesNew;
+    int64_t  filesEval;
+};
+
+typedef struct csync_update_metrics_s UPDATE_METRICS;
+
 /**
  * @brief Allocate a csync context.
  *
@@ -288,6 +296,18 @@ int csync_get_status(CSYNC *ctx);
 
 /* Used for special modes or debugging */
 int csync_set_status(CSYNC *ctx, int status);
+
+
+/**
+ * @brief Compute simple metrics about an update tree.
+ *
+ * @param ctx           The csync context.
+ * @param met           A UPDATE_METRICS struct to store data.
+ *
+ * @return              0 on success, less than 0 if an error occured.
+ */
+
+int csync_update_metrics(CSYNC *ctx, UPDATE_METRICS* met );
 
 #ifdef __cplusplus
 }

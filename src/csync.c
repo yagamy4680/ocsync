@@ -486,6 +486,23 @@ int csync_propagate(CSYNC *ctx) {
   return 0;
 }
 
+int csync_update_metrics(CSYNC *ctx, UPDATE_METRICS* met )
+{
+    int rc = -1;
+    void *userdata = NULL;
+
+    if( ! ctx ) return -1;
+
+    /* store the user data if there is some */
+    userdata = ctx->userdata;
+
+    ctx->userdata = met;
+
+    rc = csync_tree_metrics(ctx);
+    ctx->userdata = userdata;
+    return rc;
+}
+
 static void _tree_destructor(void *data) {
   csync_file_stat_t *freedata = NULL;
 
