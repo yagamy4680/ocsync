@@ -330,7 +330,7 @@ int csync_tree_metrics(CSYNC *ctx) {
     c_rbtree_t *tree = NULL;
 
     if( ! (ctx->status & CSYNC_STATUS_UPDATE) ) {
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_WARN, "metrics collector called without having done update before\n");
+        CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "metrics collector called without having done update before\n");
         return rc; /* Update has to be done before. */
     }
 
