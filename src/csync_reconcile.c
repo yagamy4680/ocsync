@@ -287,14 +287,14 @@ static int _csync_metrics_visitor( void *obj, void *data ) {
     ctx = (CSYNC *) data;
     metrics = ctx->userdata;
 
-    metrics->filesWalked++;
+    metrics->filesSeen = metrics->filesSeen+1;
     switch (cur->instruction) {
       /* file on current replica is new */
     case CSYNC_INSTRUCTION_NEW:
-        metrics->filesNew++;
+        metrics->filesNew = metrics->filesNew+1;
         break;
     case CSYNC_INSTRUCTION_EVAL:
-        metrics->filesUpdated++;
+        metrics->filesEval = metrics->filesEval+1;
         break;
     case CSYNC_INSTRUCTION_NONE:
 
@@ -330,7 +330,7 @@ int csync_tree_metrics(CSYNC *ctx) {
     c_rbtree_t *tree = NULL;
 
     if( ! (ctx->status & CSYNC_STATUS_UPDATE) ) {
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "metrics collector called without having done update before\n");
+        CSYNC_LOG(CSYNC_LOG_PRIORITY_WARN, "metrics collector called without having done update before\n");
         return rc; /* Update has to be done before. */
     }
 
