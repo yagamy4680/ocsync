@@ -183,6 +183,12 @@ __attribute__ ((packed))
 
 typedef struct csync_file_stat_s csync_file_stat_t;
 
+struct csync_update_metrics_s {
+    int64_t  filesSeen;
+    int64_t  filesNew;
+    int64_t  filesEval;
+};
+
 /**
  * }@
  */

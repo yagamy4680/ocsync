@@ -75,9 +75,9 @@ typedef int (*csync_auth_callback) (const char *prompt, char *buf, size_t len,
 typedef struct csync_s CSYNC;
 
 struct csync_update_metrics_s {
-    int64_t  filesWalked;
+    int64_t  filesSeen;
     int64_t  filesNew;
-    int64_t  filesUpdated;
+    int64_t  filesEval;
 };
 
 typedef struct csync_update_metrics_s UPDATE_METRICS;
