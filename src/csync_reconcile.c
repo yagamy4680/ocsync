@@ -278,6 +278,33 @@ static int _csync_merge_algorithm_visitor(void *obj, void *data) {
   return 0;
 }
 
+static int _csync_metrics_visitor( void *obj, void *data ) {
+    csync_file_stat_t *cur = NULL;
+    CSYNC *ctx = NULL;
+    UPDATE_METRICS *metrics = NULL;
+
+    cur = (csync_file_stat_t *) obj;
+    ctx = (CSYNC *) data;
+    metrics = ctx->userdata;
+
+    metrics->filesSeen = metrics->filesSeen+1;
+    switch (cur->instruction) {
+      /* file on current replica is new */
+    case CSYNC_INSTRUCTION_NEW:
+        metrics->filesNew = metrics->filesNew+1;
+        break;
+    case CSYNC_INSTRUCTION_EVAL:
+        metrics->filesEval = metrics->filesEval+1;
+        break;
+    case CSYNC_INSTRUCTION_NONE:
+
+      break;
+    default:
+      break;
+    }
+    return 0;
+}
+
 int csync_reconcile_updates(CSYNC *ctx) {
   int rc;
   c_rbtree_t *tree = NULL;
@@ -296,6 +323,31 @@ int csync_reconcile_updates(CSYNC *ctx) {
   rc = c_rbtree_walk(tree, (void *) ctx, _csync_merge_algorithm_visitor);
 
   return rc;
+}
+
+int csync_tree_metrics(CSYNC *ctx) {
+    int rc = -1;
+    c_rbtree_t *tree = NULL;
+
+    if( ! (ctx->status & CSYNC_STATUS_UPDATE) ) {
+        CSYNC_LOG(CSYNC_LOG_PRIORITY_WARN, "metrics collector called without having done update before\n");
+        return rc; /* Update has to be done before. */
+    }
+
+    switch (ctx->current) {
+      case LOCAL_REPLICA:
+        tree = ctx->local.tree;
+        break;
+      case REMOTE_REPLCIA:
+        tree = ctx->remote.tree;
+        break;
+      default:
+        break;
+    }
+
+    rc = c_rbtree_walk(tree, (void *) ctx, _csync_metrics_visitor);
+
+    return rc;
 }
 
 /* vim: set ts=8 sw=2 et cindent: */

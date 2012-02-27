@@ -52,9 +52,8 @@
  */
 int csync_reconcile_updates(CSYNC *ctx);
 
-/**
- * }@
- */
+int csync_tree_metrics(CSYNC *ctx);
+
 #endif /* _CSYNC_RECONCILE_H */
 
 /* vim: set ft=c.doxygen ts=8 sw=2 et cindent: */
