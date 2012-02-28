@@ -37,7 +37,6 @@ if( -r "./t1.cfg" ) {
 
 $owncloud .= "/" unless( $owncloud =~ /\/$/ );
 
-
 print "Connecting to ownCloud at ". $owncloud ."\n";
 
 
@@ -73,7 +72,6 @@ sub remoteCleanup( $;$ )
     $d->open( -url => $owncloud );
 
     print "Cleaning Remote!\n";
-    
     my $re = $d->delete( $dir );
 
     if( $re == 0 ) {
@@ -137,7 +135,7 @@ sub assertLocalAndRemoteDir( $$$ )
     if( my $r = $d->propfind( -url => $owncloud . $remote, -depth => 1 ) ) {
 	if( $r->is_collection ) {
 	    print "\nXX" . $r->get_resourcelist->as_string ."\n";
-	    
+
 	    foreach my $res ( $r->get_resourcelist->get_resources() ) {
 		print "Checking " . $res-> get_uri()->as_string ."\n";
 		my $filename = $res->get_property("rel_uri");
@@ -149,7 +147,7 @@ sub assertLocalAndRemoteDir( $$$ )
 		my @info = stat( "$local/$filename" );
 		my $localModTime = $info[8];
 		assert( $remoteModTime == $localModTime, "Modfied-Times differ: $remoteModTime <-> $localModTime" );
-		
+
 		# check for the same file size
 		my $localSize = $info[7];
 		my $remoteSize = $res->get_property( "getcontentlength" );
@@ -195,7 +193,7 @@ remoteDir( $d, $remoteDir . "remoteToLocal1" );
 # put some files remote.
 $d->put( -local=>"toremote1/*", -url=> $owncloud . $remoteDir . "remoteToLocal1" );
 
-# 
+#
 my $localDir = "./t1";
 
 createLocalDir( $localDir );
