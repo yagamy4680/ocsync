@@ -287,14 +287,14 @@ static int _csync_metrics_visitor( void *obj, void *data ) {
     ctx = (CSYNC *) data;
     metrics = ctx->userdata;
 
-    metrics->filesSeen = metrics->filesSeen+1;
+    metrics->filesWalked++;
     switch (cur->instruction) {
       /* file on current replica is new */
     case CSYNC_INSTRUCTION_NEW:
-        metrics->filesNew = metrics->filesNew+1;
+        metrics->filesNew++;
         break;
     case CSYNC_INSTRUCTION_EVAL:
-        metrics->filesEval = metrics->filesEval+1;
+        metrics->filesUpdated++;
         break;
     case CSYNC_INSTRUCTION_NONE:
 
