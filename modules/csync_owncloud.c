@@ -749,7 +749,7 @@ static csync_vio_method_handle_t *owncloud_open(const char *durl,
     if( rc == NE_OK ) {
         /* open a temp file to store the incoming data */
         writeCtx->tmpFileName = c_strdup( "/tmp/csync.XXXXXX" );
-        writeCtx->fd = mkstemps( writeCtx->tmpFileName, 6 );
+        writeCtx->fd = mkstemps( writeCtx->tmpFileName, 0 );
         DEBUG_WEBDAV(("opening temp directory %s\n", writeCtx->tmpFileName ));
         if( writeCtx->fd == -1 ) {
             rc = NE_ERROR;
