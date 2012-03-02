@@ -28,8 +28,6 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "ansidecl.h"
-
 /* We need to provide a type for gcc_uint64_t.  */
 #ifdef __GNUC__
 __extension__ typedef unsigned long long gcc_uint64_t;
