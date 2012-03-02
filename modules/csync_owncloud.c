@@ -40,6 +40,7 @@
 #include "csync.h"
 #include "vio/csync_vio_module.h"
 #include "vio/csync_vio_file_stat.h"
+#include "mkstemps.h"
 
 #define DEBUG_WEBDAV(x) printf x
 
@@ -748,7 +749,7 @@ static csync_vio_method_handle_t *owncloud_open(const char *durl,
     if( rc == NE_OK ) {
         /* open a temp file to store the incoming data */
         writeCtx->tmpFileName = c_strdup( "/tmp/csync.XXXXXX" );
-        writeCtx->fd = mkstemp( writeCtx->tmpFileName );
+        writeCtx->fd = mkstemps( writeCtx->tmpFileName, 6 );
         DEBUG_WEBDAV(("opening temp directory %s\n", writeCtx->tmpFileName ));
         if( writeCtx->fd == -1 ) {
             rc = NE_ERROR;
@@ -766,6 +767,8 @@ static csync_vio_method_handle_t *owncloud_open(const char *durl,
                 DEBUG_WEBDAV(("Can not open a request, bailing out.\n"));
                 errno = EACCES;
             }
+        } else {
+            DEBUG_WEBDAV(( "Failed to create a requst\n" ));
         }
 
         strncpy( writeCtx->method, "PUT", 3 );

@@ -26,6 +26,7 @@ set(cstdlib_SRCS
   c_rbtree.c
   c_string.c
   c_time.c
+  mkstemps.c
 )
 
 include_directories(
