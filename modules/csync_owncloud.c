@@ -40,7 +40,6 @@
 #include "csync.h"
 #include "vio/csync_vio_module.h"
 #include "vio/csync_vio_file_stat.h"
-#include "mkstemps.h"
 
 #define DEBUG_WEBDAV(x) printf x
 
@@ -749,8 +748,16 @@ static csync_vio_method_handle_t *owncloud_open(const char *durl,
     if( rc == NE_OK ) {
         /* open a temp file to store the incoming data */
         writeCtx->tmpFileName = c_strdup( "/tmp/csync.XXXXXX" );
-        writeCtx->fd = mkstemps( writeCtx->tmpFileName, 0 );
-        DEBUG_WEBDAV(("opening temp directory %s\n", writeCtx->tmpFileName ));
+#ifdef _WIN32
+	if( c_tmpname( writeCtx->tmpFileName ) == 0 ) {
+	   writeCtx->fd = open( writeCtx->tmpFileName, O_RDWR | O_CREAT | O_EXCL, 0600 );
+	} else {
+	   writeCtx->fd = -1;
+	}
+#else
+        writeCtx->fd = mkstemp( writeCtx->tmpFileName );
+#endif
+        DEBUG_WEBDAV(("opening temp file %s: %d\n", writeCtx->tmpFileName, writeCtx->fd ));
         if( writeCtx->fd == -1 ) {
             rc = NE_ERROR;
             // errno is set by the mkstemp call above.
