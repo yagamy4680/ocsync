@@ -943,6 +943,7 @@ static ssize_t owncloud_read(csync_vio_method_handle_t *fhandle, void *buf, size
     writeCtx = (struct transfer_context*) fhandle;
 
     DEBUG_WEBDAV(( "read called on %s (fd=%d)!\n", writeCtx->tmpFileName, writeCtx->fd ));
+
     if( ! fhandle ) {
         errno = EBADF;
         return -1;
