@@ -64,6 +64,7 @@ int csync_gettime(struct timespec *tp)
 /* check time difference between the replicas */
 time_t csync_timediff(CSYNC *ctx) {
   time_t timediff = -1;
+  time_t local_time = -1;
   char errbuf[256] = {0};
   char *luri = NULL;
   char *ruri = NULL;
@@ -71,6 +72,7 @@ time_t csync_timediff(CSYNC *ctx) {
   csync_vio_file_stat_t *st = NULL;
   csync_vio_handle_t *dp = NULL;
 
+  printf("Here we are!\n");
   /* try to open remote dir to get auth */
   ctx->replica = ctx->remote.type;
   dp = csync_vio_opendir(ctx, ctx->remote.uri);
@@ -116,7 +118,7 @@ time_t csync_timediff(CSYNC *ctx) {
         strerror_r(errno, errbuf, sizeof(errbuf)));
     goto out;
   }
-  timediff = st->mtime;
+  local_time = st->mtime;
   csync_vio_file_stat_destroy(st);
   st = NULL;
 
@@ -142,9 +144,8 @@ time_t csync_timediff(CSYNC *ctx) {
         strerror_r(errno, errbuf, sizeof(errbuf)));
     goto out;
   }
-
   /* calc time difference */
-  timediff = abs(timediff - st->mtime);
+  timediff = local_time - st->mtime;
   CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "Time difference: %ld seconds", timediff);
 
 out:
@@ -158,7 +159,7 @@ out:
   csync_vio_unlink(ctx, ruri);
   SAFE_FREE(ruri);
 
-  return timediff;
+  return llabs(timediff);
 }
 
 /* vim: set ts=8 sw=2 et cindent: */

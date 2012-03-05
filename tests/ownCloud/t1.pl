@@ -153,7 +153,7 @@ sub assertLocalAndRemoteDir( $$$ )
 		# check for the same file size
 		my $localSize = $info[7];
 		my $remoteSize = $res->get_property( "getcontentlength" );
-		assert( $localSize == $remoteSize );
+		assert( $localSize == $remoteSize, "Sizes differ: $localSize <-> $remoteSize" );
 
 		# remember the files seen on the server.
 		$seen{$filename} = 1;
