@@ -665,8 +665,8 @@ static int owncloud_stat(const char *uri, csync_vio_file_stat_t *buf) {
             SAFE_FREE( fetchCtx );
         }
     }
-    DEBUG_WEBDAV(("STAT result: %s, type=%d\n", buf->name ? buf->name:"NULL",
-                  buf->type ));
+    DEBUG_WEBDAV(("STAT result: %s, type=%d, size=%zd\n", buf->name ? buf->name:"NULL",
+                  buf->type, buf->size ));
     return 0;
 }
 
