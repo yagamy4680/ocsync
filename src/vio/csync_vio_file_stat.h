@@ -27,7 +27,7 @@
  * cannot include csync_private here because
  * that would cause circular inclusion
  */
-#include "c_private.h"
+#include "c_port.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -75,11 +75,6 @@ enum csync_vio_file_stat_fields_e {
 
 
 struct csync_vio_file_stat_s {
-  union {
-    char *symlink_name;
-    char *checksum;
-  } u;
-
   void *acl;
   char *name;
 
@@ -108,7 +103,11 @@ struct csync_vio_file_stat_s {
   void *reserved1;
   void *reserved2;
   void *reserved3;
-};
+
+  union {
+    char *symlink_name;
+    char *checksum;
+  } u;};
 
 csync_vio_file_stat_t *csync_vio_file_stat_new(void);
 
