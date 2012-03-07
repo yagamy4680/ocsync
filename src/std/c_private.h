@@ -62,9 +62,9 @@
 #endif
 
 #ifdef _WIN32
-typedef struct _stat struct_stat;
+typedef struct _stat csync_stat_t;
 #else
-typedef struct stat struct_stat;
+typedef struct stat csync_stat_t;
 #endif
 
 #ifndef HAVE_STRERROR_R
