@@ -23,7 +23,7 @@
 #include <libsmbclient.h>
 
 #include "c_lib.h"
-#include "c_port.h"
+#include "c_private.h"
 
 #include "vio/csync_vio_module.h"
 #include "vio/csync_vio_file_stat.h"
@@ -288,7 +288,7 @@ static int _rmdir(const char *uri) {
 }
 
 static int _stat(const char *uri, csync_vio_file_stat_t *buf) {
-  struct_stat sb;
+  csync_stat_t sb;
 
   if (smbc_stat(uri, &sb) < 0) {
     return -1;
