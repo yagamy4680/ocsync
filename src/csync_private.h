@@ -37,9 +37,10 @@
 
 #include "config.h"
 #include "c_lib.h"
-#include "c_port.h"
+
 #include "csync.h"
 
+#include "c_port.h"
 #include "vio/csync_vio_method.h"
 #include "csync_macros.h"
 

@@ -27,6 +27,7 @@
 #include <dirent.h>
 #include <stdio.h>
 
+#include "c_port.h"
 #include "c_lib.h"
 #include "vio/csync_vio_local.h"
 
@@ -316,7 +317,7 @@ int csync_vio_local_stat(const char *uri, csync_vio_file_stat_t *buf) {
 
   buf->size = sb.st_size;
   buf->fields |= CSYNC_VIO_FILE_STAT_FIELDS_SIZE;
-  printf("XXXXXXXXXXXXXXXXXXXXXXXXX SIZE: %zd\n", buf->size );
+
 #ifndef _WIN32
   buf->blksize = sb.st_blksize;
   buf->fields |= CSYNC_VIO_FILE_STAT_FIELDS_BLOCK_SIZE;

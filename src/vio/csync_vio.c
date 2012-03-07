@@ -27,6 +27,9 @@
 #include <errno.h>
 #include <stdio.h>
 #include <dlfcn.h> /* dlopen(), dlclose(), dlsym() ... */
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "csync_private.h"
 #include "vio/csync_vio.h"
