@@ -35,6 +35,8 @@
 
 /* cross platform defines */
 #include "config.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #ifdef _WIN32
 #include <windef.h>
@@ -74,6 +76,11 @@ typedef struct stat struct_stat;
 #endif
 #ifdef _WIN32
 #define stat _stat
+#define fstat _fstat
+#define read _read
+#define open _open
+#define close _close
+#define write _write
 #endif
 
 /**

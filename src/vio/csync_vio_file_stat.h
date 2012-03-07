@@ -27,10 +27,7 @@
  * cannot include csync_private here because
  * that would cause circular inclusion
  */
-#include "c_port.h"
-
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 typedef struct csync_vio_file_stat_s csync_vio_file_stat_t;
