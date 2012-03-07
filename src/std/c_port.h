@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 2012 by Dominik Schmidt <dev@dominik-schmidt.de>
+ * cynapses libc functions
+ *
+ * Copyright (c) 2008      by Andreas Schneider <mail@cynapses.org>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -14,16 +16,30 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+ *
+ * vim: ts=2 sw=2 et cindent
  */
-
-#ifndef _C_PRIVATE_H
-#define _C_PRIVATE_H
-
-#include "config.h"
 
 /**
- * Add status codes, types, functions and return-values missing on windows
+ * @file c_port.h
+ *
+ * @brief cynapses libc porting include
+ *
+ * @defgroup cynMacroInternals cynapses libc porting definitions
+ * @ingroup cynLibraryAPI
+ *
+ * @{
  */
+#ifndef _C_PORT_H
+#define _C_PORT_H
+
+/* cross platform defines */
+#include "config.h"
+
+#ifdef _WIN32
+#include <windef.h>
+#include <winbase.h>
+#endif
 
 #ifdef _WIN32
 #define EDQUOT 0
@@ -43,6 +59,12 @@
 #define geteuid() 0
 #endif
 
+#ifdef _WIN32
+typedef struct _stat struct_stat;
+#else
+typedef struct stat struct_stat;
+#endif
+
 #ifndef HAVE_STRERROR_R
 #define strerror_r(errnum, buf, buflen) snprintf(buf, buflen, "%s", strerror(errnum))
 #endif
@@ -50,8 +72,12 @@
 #ifndef HAVE_LSTAT
 #define lstat _stat
 #endif
+#ifdef _WIN32
+#define stat _stat
+#endif
 
+/**
+ * }@
+ */
+#endif /* _C_PORT_H */
 
-#endif //_C_PRIVATE_H
-
-/* vim: set ft=c.doxygen ts=8 sw=2 et cindent: */

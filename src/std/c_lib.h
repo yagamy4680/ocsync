@@ -19,6 +19,7 @@
  *
  * vim: ts=2 sw=2 et cindent
  */
+#include "config.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -32,6 +33,7 @@
 #include "c_rbtree.h"
 #include "c_string.h"
 #include "c_time.h"
+#include "c_port.h"
 
 #ifdef malloc
 #undef malloc
