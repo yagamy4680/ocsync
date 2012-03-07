@@ -33,7 +33,7 @@
 
 #include "csync_auth.h"
 
-#include "../src/std/c_private.h"
+#include "../src/std/c_port.h"
 
 enum {
   KEY_EXCLUDE_FILE = 129,

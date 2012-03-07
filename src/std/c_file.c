@@ -20,10 +20,7 @@
  * vim: ts=2 sw=2 et cindent
  */
 
-#ifdef _WIN32
-#include <windef.h>
-#include <winbase.h>
-#endif
+
 
 #include <errno.h>
 #include <sys/types.h>
@@ -33,12 +30,11 @@
 
 #include "c_file.h"
 #include "c_string.h"
-
-#include "c_private.h"
+#include "c_port.h"
 
 /* check if path is a file */
 int c_isfile(const char *path) {
-  struct stat sb;
+  struct_stat sb;
 
   if (lstat (path, &sb) < 0) {
     return 0;
@@ -61,7 +57,7 @@ int c_copy(const char* src, const char *dst, mode_t mode) {
   int dstfd = -1;
   int rc = -1;
   ssize_t bread, bwritten;
-  struct stat sb;
+  struct_stat sb;
   char buf[BUFFER_SIZE];
 
 #ifdef _WIN32

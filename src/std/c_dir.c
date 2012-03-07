@@ -6,14 +6,14 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "c_port.h"
 #include "c_macro.h"
 #include "c_alloc.h"
 #include "c_dir.h"
-#include "c_private.h"
 
 int c_mkdirs(const char *path, mode_t mode) {
   int tmp;
-  struct stat sb;
+  struct_stat sb;
 
   if (path == NULL) {
     errno = EINVAL;
@@ -64,11 +64,11 @@ int c_mkdirs(const char *path, mode_t mode) {
 int c_rmdirs(const char *path) {
   DIR *d;
   struct dirent *dp;
-  struct stat sb;
+  struct_stat sb;
   char *fname;
 
   if ((d = opendir(path)) != NULL) {
-    while(stat(path, &sb) == 0) {
+    while(stat( path, &sb ) == 0) {
       /* if we can remove the directory we're done */
       if (rmdir(path) == 0) {
         break;
@@ -132,7 +132,7 @@ int c_rmdirs(const char *path) {
 }
 
 int c_isdir(const char *path) {
-  struct stat sb;
+  struct_stat sb;
 
   if (lstat (path, &sb) == 0 && S_ISDIR(sb.st_mode)) {
     return 1;
