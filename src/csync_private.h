@@ -40,7 +40,7 @@
 
 #include "csync.h"
 
-#include "c_port.h"
+#include "c_private.h"
 #include "vio/csync_vio_method.h"
 #include "csync_macros.h"
 
