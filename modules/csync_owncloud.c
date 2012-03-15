@@ -782,7 +782,7 @@ static csync_vio_method_handle_t *owncloud_open(const char *durl,
         writeCtx->tmpFileName = c_strdup( "/tmp/csync.XXXXXX" );
         writeCtx->fd = mkstemp( writeCtx->tmpFileName );
 #endif
-        DEBUG_WEBDAV(("opening temp file %s: %d\n", writeCtx->tmpFileName, writeCtx->fd ));
+        DEBUG_WEBDAV(("opening temp directory %s\n", writeCtx->tmpFileName ));
         if( writeCtx->fd == -1 ) {
             rc = NE_ERROR;
             /* errno is set by the mkstemp call above. */
