@@ -25,6 +25,7 @@
 #include "c_lib.h"
 #include "csync_private.h"
 #include "csync_config.h"
+#include "ini.h"
 
 #define CSYNC_LOG_CATEGORY_NAME "csync.config"
 #include "csync_log.h"
@@ -42,38 +43,51 @@ static int _csync_config_copy_default (const char *config) {
     return 0;
 }
 
-int csync_config_load(CSYNC *ctx, const char *config) {
-  dictionary *dict;
+static int handler(void* user, const char* section, const char* name,
+                   const char* value)
+{
+    CSYNC *ctx = (CSYNC*)user;
 
-  /* copy default config, if no config exists */
-  if (! c_isfile(config)) {
-    if (_csync_config_copy_default(config) < 0) {
-      return -1;
+    if( ! ctx ) return 0;
+
+#define MATCH(s, n) strcasecmp(section, s) == 0 && strcasecmp(name, n) == 0
+
+    if (MATCH("global", "max_depth")) {
+        ctx->options.max_depth = atoi(value);
+    } else if (MATCH("global", "max_time_difference")) {
+        ctx->options.max_time_difference = atoi(value);
+    } else if (MATCH("global", "sync_symbolic_links")) {
+        ctx->options.sync_symbolic_links = atoi(value);
+    } else {
+        return 0;  /* unknown section/name, error */
     }
-  }
+    return 1;
+}
 
-  dict = iniparser_load(config);
-  if (dict == NULL) {
-    return -1;
-  }
 
-  ctx->options.max_depth = iniparser_getint(dict, "global:max_depth", MAX_DEPTH);
-  CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "Config: max_depth = %d",
-      ctx->options.max_depth);
+int csync_config_load(CSYNC *ctx, const char *config)
+{
 
-  ctx->options.max_time_difference = iniparser_getint(dict,
-      "global:max_time_difference", MAX_TIME_DIFFERENCE);
-  CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "Config: max_time_difference = %d",
-      ctx->options.max_time_difference);
+    /* copy default config, if no config exists */
+    if (! c_isfile(config)) {
+        if (_csync_config_copy_default(config) < 0) {
+            return -1;
+        }
+    }
 
-  ctx->options.sync_symbolic_links = iniparser_getboolean(dict,
-      "global:sync_symbolic_links", 0);
-  CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "Config: sync_symbolic_links = %d",
-      ctx->options.sync_symbolic_links);
+    if (ini_parse(config, handler, ctx) < 0) {
+        printf("Can't load %s\n", config);
+        return 1;
+    }
 
-  iniparser_freedict(dict);
+    CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "Config: max_depth = %d",
+              ctx->options.max_depth);
+    CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "Config: max_time_difference = %d",
+              ctx->options.max_time_difference);
+    CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "Config: sync_symbolic_links = %d",
+              ctx->options.sync_symbolic_links);
 
-  return 0;
+    return 0;
 }
 
 /* vim: set ts=8 sw=2 et cindent: */

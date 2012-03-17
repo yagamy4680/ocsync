@@ -3,7 +3,6 @@ project(libcsync C)
 add_subdirectory(std)
 
 find_package(SQLite3 REQUIRED)
-find_package(Iniparser REQUIRED)
 
 set(CSYNC_PUBLIC_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}
@@ -12,11 +11,11 @@ set(CSYNC_PUBLIC_INCLUDE_DIRS
 )
 
 set(CSYNC_PRIVATE_INCLUDE_DIRS
-  ${INIPARSER_INCLUDE_DIRS}
   ${LOG4C_INCLUDE_DIRS}
   ${SQLITE3_INCLUDE_DIRS}
   ${CSTDLIB_PUBLIC_INCLUDE_DIRS}
   ${CMAKE_BINARY_DIR}
+  inih
 )
 
 set(CSYNC_LIBRARY
@@ -50,6 +49,8 @@ set(csync_SRCS
   vio/csync_vio_handle.c
   vio/csync_vio_file_stat.c
   vio/csync_vio_local.c
+
+  inih/ini.c
 )
 
 if(NOT WIN32)
