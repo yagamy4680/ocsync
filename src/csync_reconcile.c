@@ -286,7 +286,6 @@ static int _csync_metrics_visitor( void *obj, void *data ) {
     cur = (csync_file_stat_t *) obj;
     ctx = (CSYNC *) data;
     metrics = ctx->userdata;
-
     metrics->filesWalked++;
     switch (cur->instruction) {
       /* file on current replica is new */

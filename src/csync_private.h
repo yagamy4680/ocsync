@@ -140,49 +140,6 @@ enum csync_ftw_type_e {
   CSYNC_FTW_TYPE_DIR
 };
 
-enum csync_instructions_e {
-  CSYNC_INSTRUCTION_NONE,
-  CSYNC_INSTRUCTION_EVAL,
-  CSYNC_INSTRUCTION_REMOVE,
-  CSYNC_INSTRUCTION_RENAME,
-  CSYNC_INSTRUCTION_NEW,
-  CSYNC_INSTRUCTION_CONFLICT,
-  CSYNC_INSTRUCTION_IGNORE,
-  CSYNC_INSTRUCTION_SYNC,
-  CSYNC_INSTRUCTION_STAT_ERROR,
-  CSYNC_INSTRUCTION_ERROR,
-  /* instructions for the propagator */
-  CSYNC_INSTRUCTION_DELETED,
-  CSYNC_INSTRUCTION_UPDATED
-};
-
-#ifdef _MSC_VER
-#pragma pack(1)
-#endif
-struct csync_file_stat_s {
-  uint64_t phash;   /* u64 */
-  time_t modtime;   /* u64 */
-  off_t size;       /* u64 */
-  size_t pathlen;   /* u64 */
-  ino_t inode;      /* u64 */
-  uid_t uid;        /* u32 */
-  gid_t gid;        /* u32 */
-  mode_t mode;      /* u32 */
-  int nlink;        /* u32 */
-  int type;         /* u32 */
-  enum csync_instructions_e instruction; /* u32 */
-  char path[1]; /* u8 */
-}
-#if !defined(__SUNPRO_C) && !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
-#ifdef _MSC_VER
-#pragma pack()
-#endif
-;
-
-typedef struct csync_file_stat_s csync_file_stat_t;
-
 /**
  * }@
  */

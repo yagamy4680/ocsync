@@ -491,6 +491,38 @@ int csync_propagate(CSYNC *ctx) {
   return 0;
 }
 
+
+static int _csync_treewalk_visitor( void *obj, void *data ) {
+    csync_file_stat_t *cur = NULL;
+    CSYNC *ctx = NULL;
+    c_rbtree_visit_func *visitor;
+
+    cur = (csync_file_stat_t *) obj;
+    ctx = (CSYNC *) data;
+    visitor = (c_rbtree_visit_func*)(ctx->userdata);
+    // callback = ctx->userdata;
+    printf("YYYYYYYYYYYY %s\n", cur->path);
+    (*visitor)(obj, data);
+    return 0;
+}
+
+
+int csync_walk_local_tree(CSYNC *ctx, void *userdata, c_rbtree_visit_func *visitor)
+{
+    int rc = -1;
+    void *save_userdata = NULL;
+    c_rbtree_t *tree = NULL;
+
+    save_userdata = ctx->userdata;
+
+    ctx->userdata = (void*) visitor;
+    tree = ctx->local.tree;
+    rc = c_rbtree_walk(tree, (void *) ctx, _csync_treewalk_visitor);
+    ctx->userdata = save_userdata;
+
+    return rc;
+}
+
 int csync_update_metrics(CSYNC *ctx, UPDATE_METRICS* met )
 {
     int rc = -1;
