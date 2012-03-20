@@ -115,6 +115,13 @@ __attribute__ ((packed))
 ;
 typedef struct csync_file_stat_s csync_file_stat_t;
 
+struct csync_tree_traversal_s {
+    off_t      size;
+    size_t     pathlen;
+    const char *path;
+};
+typedef struct csync_tree_traversal_s TREE_TRAVERSAL;
+
 /**
  * csync handle
  */
