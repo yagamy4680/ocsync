@@ -521,7 +521,7 @@ static int _csync_treewalk_visitor( void *obj, void *data ) {
             trav.type =   cur->type;
             trav.instruction = cur->instruction;
 
-            return (*visitor)(&trav, ctx);
+            return (*visitor)(&trav, twctx->userdata);
         }
     }
     return -1;
