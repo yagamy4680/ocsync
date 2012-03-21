@@ -73,67 +73,54 @@ extern "C" {
 typedef int (*csync_auth_callback) (const char *prompt, char *buf, size_t len,
     int echo, int verify, void *userdata);
 
+/**
+  * Instruction enum. In the file traversal structure, it describes
+  * the csync state of a file.
+  */
 enum csync_instructions_e {
-  CSYNC_INSTRUCTION_NONE,
-  CSYNC_INSTRUCTION_EVAL,
-  CSYNC_INSTRUCTION_REMOVE,
-  CSYNC_INSTRUCTION_RENAME,
-  CSYNC_INSTRUCTION_NEW,
-  CSYNC_INSTRUCTION_CONFLICT,
-  CSYNC_INSTRUCTION_IGNORE,
-  CSYNC_INSTRUCTION_SYNC,
-  CSYNC_INSTRUCTION_STAT_ERROR,
-  CSYNC_INSTRUCTION_ERROR,
+  CSYNC_INSTRUCTION_NONE       = 0x00000000,
+  CSYNC_INSTRUCTION_EVAL       = 0x00000001,
+  CSYNC_INSTRUCTION_REMOVE     = 0x00000002,
+  CSYNC_INSTRUCTION_RENAME     = 0x00000004,
+  CSYNC_INSTRUCTION_NEW        = 0x00000008,
+  CSYNC_INSTRUCTION_CONFLICT   = 0x00000010,
+  CSYNC_INSTRUCTION_IGNORE     = 0x00000020,
+  CSYNC_INSTRUCTION_SYNC       = 0x00000040,
+  CSYNC_INSTRUCTION_STAT_ERROR = 0x00000080,
+  CSYNC_INSTRUCTION_ERROR      = 0x00000100,
   /* instructions for the propagator */
-  CSYNC_INSTRUCTION_DELETED,
-  CSYNC_INSTRUCTION_UPDATED
+  CSYNC_INSTRUCTION_DELETED    = 0x00000200,
+  CSYNC_INSTRUCTION_UPDATED    = 0x00000400
 };
 
-#ifdef _MSC_VER
-#pragma pack(1)
-#endif
-struct csync_file_stat_s {
-  uint64_t phash;   /* u64 */
-  time_t modtime;   /* u64 */
-  off_t size;       /* u64 */
-  size_t pathlen;   /* u64 */
-  ino_t inode;      /* u64 */
-  uid_t uid;        /* u32 */
-  gid_t gid;        /* u32 */
-  mode_t mode;      /* u32 */
-  int nlink;        /* u32 */
-  int type;         /* u32 */
-  enum csync_instructions_e instruction; /* u32 */
-  char path[1]; /* u8 */
-}
-#if !defined(__SUNPRO_C) && !defined(_MSC_VER)
-__attribute__ ((packed))
-#endif
-#ifdef _MSC_VER
-#pragma pack()
-#endif
-;
-typedef struct csync_file_stat_s csync_file_stat_t;
-
-struct csync_tree_traversal_s {
-    off_t      size;
-    size_t     pathlen;
+/**
+ * CSync File Traversal structure.
+ *
+ * This structure is passed to the visitor function for every file
+ * which is seen.
+ * Note: The file size is missing here because type off_t is depending
+ *       on the large file support in your build. Make sure to check
+ *       that cmake and the callback app are compiled with the same
+ *       setting for it, such as:
+ *       -D_LARGEFILE64_SOURCE or -D_LARGEFILE_SOURCE
+ *
+ */
+struct csync_tree_walk_file_s {
     const char *path;
+    /* off_t       size; */
+    time_t      modtime;
+    uid_t       uid;
+    gid_t       gid;
+    mode_t      mode;
+    int         type;
+    enum csync_instructions_e instruction;
 };
-typedef struct csync_tree_traversal_s TREE_TRAVERSAL;
+typedef struct csync_tree_walk_file_s TREE_WALK_FILE;
 
 /**
  * csync handle
  */
 typedef struct csync_s CSYNC;
-
-struct csync_update_metrics_s {
-    int64_t  filesWalked;
-    int64_t  filesNew;
-    int64_t  filesUpdated;
-};
-
-typedef struct csync_update_metrics_s UPDATE_METRICS;
 
 /**
  * @brief Allocate a csync context.
@@ -368,9 +355,9 @@ int csync_get_status(CSYNC *ctx);
 /* Used for special modes or debugging */
 int csync_set_status(CSYNC *ctx, int status);
 
-
+typedef int csync_treewalk_visit_func(TREE_WALK_FILE* ,void*);
 /**
- * @brief Compute simple metrics about an update tree.
+ * @brief Walk the local file tree and call a visitor function for each file.
  *
  * @param ctx           The csync context.
  * @param met           A UPDATE_METRICS struct to store data.
@@ -378,9 +365,9 @@ int csync_set_status(CSYNC *ctx, int status);
  * @return              0 on success, less than 0 if an error occured.
  */
 
-int csync_update_metrics(CSYNC *ctx, UPDATE_METRICS* met );
+int csync_walk_local_tree(CSYNC *ctx, csync_treewalk_visit_func *visitor, int filter);
 
-int csync_walk_local_tree(CSYNC *ctx, void *userdata, c_rbtree_visit_func *visitor);
+int csync_walk_remote_tree(CSYNC *ctx, csync_treewalk_visit_func *visitor, int filter);
 
 #ifdef __cplusplus
 }

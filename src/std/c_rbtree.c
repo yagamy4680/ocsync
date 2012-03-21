@@ -31,11 +31,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "c_alloc.h"
 #include "c_rbtree.h"
-#include "../csync.h"
 
 #define NIL &_sentinel /* all leafs are sentinels */
 static c_rbnode_t _sentinel = {NULL, NIL, NIL, NULL, NULL, BLACK};
@@ -142,8 +140,6 @@ static int _rbtree_subtree_walk(c_rbnode_t *node, void *data, c_rbtree_visit_fun
   assert(node);
   assert(data);
   assert(visitor);
-  csync_file_stat_t *cur = NULL;
-  TREE_TRAVERSAL trav;
 
   if (node == NIL) {
     return 0;
@@ -153,14 +149,7 @@ static int _rbtree_subtree_walk(c_rbnode_t *node, void *data, c_rbtree_visit_fun
     return -1;
   }
 
-  cur = (csync_file_stat_t*) node->data;
-  trav.pathlen = cur->pathlen;
-  trav.path    = cur->path;
-  trav.size = cur->size;
-
-  printf("UUUUUUUUUUUUU <%s>\n", cur->path );
-
-  if ((*visitor)((void*)&trav, data) < 0) {
+  if ((*visitor)(node->data, data) < 0) {
     return -1;
   }
 

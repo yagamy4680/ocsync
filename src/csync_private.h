@@ -140,6 +140,44 @@ enum csync_ftw_type_e {
   CSYNC_FTW_TYPE_DIR
 };
 
+#ifdef _MSC_VER
+#pragma pack(1)
+#endif
+struct csync_file_stat_s {
+  uint64_t phash;   /* u64 */
+  time_t modtime;   /* u64 */
+  off_t size;       /* u64 */
+  size_t pathlen;   /* u64 */
+  ino_t inode;      /* u64 */
+  uid_t uid;        /* u32 */
+  gid_t gid;        /* u32 */
+  mode_t mode;      /* u32 */
+  int nlink;        /* u32 */
+  int type;         /* u32 */
+  enum csync_instructions_e instruction; /* u32 */
+  char path[1]; /* u8 */
+}
+#if !defined(__SUNPRO_C) && !defined(_MSC_VER)
+__attribute__ ((packed))
+#endif
+#ifdef _MSC_VER
+#pragma pack()
+#endif
+;
+
+typedef struct csync_file_stat_s csync_file_stat_t;
+
+/*
+ * context for the treewalk function
+ */
+struct _csync_treewalk_context_s
+{
+    csync_treewalk_visit_func *user_visitor;
+    int instruction_filter;
+    void *userdata;
+};
+typedef struct _csync_treewalk_context_s _csync_treewalk_context;
+
 /**
  * }@
  */
