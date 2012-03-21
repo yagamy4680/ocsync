@@ -356,17 +356,27 @@ int csync_get_status(CSYNC *ctx);
 int csync_set_status(CSYNC *ctx, int status);
 
 typedef int csync_treewalk_visit_func(TREE_WALK_FILE* ,void*);
+
 /**
  * @brief Walk the local file tree and call a visitor function for each file.
  *
  * @param ctx           The csync context.
- * @param met           A UPDATE_METRICS struct to store data.
+ * @param visitor       A callback function to handle the file info.
+ * @param filter        A filter, built from and'ed csync_instructions_e
  *
  * @return              0 on success, less than 0 if an error occured.
  */
-
 int csync_walk_local_tree(CSYNC *ctx, csync_treewalk_visit_func *visitor, int filter);
 
+/**
+ * @brief Walk the remote file tree and call a visitor function for each file.
+ *
+ * @param ctx           The csync context.
+ * @param visitor       A callback function to handle the file info.
+ * @param filter        A filter, built from and'ed csync_instructions_e
+ *
+ * @return              0 on success, less than 0 if an error occured.
+ */
 int csync_walk_remote_tree(CSYNC *ctx, csync_treewalk_visit_func *visitor, int filter);
 
 #ifdef __cplusplus
