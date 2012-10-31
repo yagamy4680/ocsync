@@ -110,6 +110,7 @@ int csync_excluded(CSYNC *ctx, const char *path) {
   size_t i;
   const char *p;
   const char *bname = NULL;
+  int rc;
 
   if (! ctx->options.unix_extensions) {
     for (p = path; *p; p++) {
