@@ -1,6 +1,10 @@
 ChangeLog
 ==========
-version 0.60.2  (released 2012-11-  )
+version 0.60.3  (released 2012-11-30)
+  * Fix neon resource waste (oc-920)
+  * Fix a crash in error handling code path (github #123)
+
+version 0.60.2  (released 2012-11-26)
   * Migration to cross platform testing system cmocka.
   * Fixed variuos minor things incl. potential mem leaks.
   * Clang fixes.
