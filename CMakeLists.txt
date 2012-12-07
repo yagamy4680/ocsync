@@ -40,6 +40,7 @@ include(MacroAddPlugin)
 include(MacroCopyFile)
 
 find_package(Log4C)
+find_package(iconv)
 find_package(CMocka)
 if (CMOCKA_FOUND AND UNIT_TESTING)
     include(AddCMockaTest)
