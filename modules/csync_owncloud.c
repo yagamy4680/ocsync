@@ -1660,7 +1660,7 @@ static int owncloud_close(csync_vio_method_handle_t *fhandle) {
                         if(rc != NE_OK || status->klass != 2 ) {
                             DEBUG_WEBDAV("Error - PUT status %d, %s", status->code, status->reason_phrase);
                             errno = EIO;
-                            ret = -1;
+                            ret = 1; /* Mark a soft error for individual files */
                         }
                     } else {
                         DEBUG_WEBDAV("Status undefined, critical.");
@@ -1680,7 +1680,7 @@ static int owncloud_close(csync_vio_method_handle_t *fhandle) {
                     if(rc != NE_OK || status->klass != 2 ) {
                         DEBUG_WEBDAV("Error - PUT status %d, %s", status->code, status->reason_phrase);
                         errno = EIO;
-                        ret = -1;
+                        ret = 1; /* Mark a soft error for individual files */
                     }
                 } else {
                     DEBUG_WEBDAV("Status undefined, critical.");

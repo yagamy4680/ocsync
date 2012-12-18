@@ -316,34 +316,17 @@ static int _csync_push_file(CSYNC *ctx, csync_file_stat_t *st) {
   sfp = NULL;
 
   ctx->replica = drep;
-  if (csync_vio_close(ctx, dfp) < 0) {
-    dfp = NULL;
-    switch (errno) {
-      /* stop if no space left or quota exceeded */
-      case ENOSPC:
-      case EDQUOT:
-        strerror_r(errno, errbuf, sizeof(errbuf));
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-            "file: %s, command: close, error: %s",
-            turi,
-            errbuf);
-        rc = -1;
-        goto out;
-        break;
-      case EIO:
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR, "ownCloud error: could not transfer file.");
-        rc = -1;
-        goto out;
-      default:
-        strerror_r(errno, errbuf, sizeof(errbuf));
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-            "file: %s, command: close, error: %s",
-            turi,
-	    errbuf);
-        break;
-    }
-  }
+  rc = csync_vio_close(ctx, dfp);
   dfp = NULL;
+  if (rc != 0) {
+    strerror_r(errno, errbuf, sizeof(errbuf));
+    CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+              "file: %s, command: close, error: %s",
+              turi,
+              errbuf);
+
+        goto out;
+  }
 
   if( ctx->module.capabilities.do_post_copy_stat ) {
     /*
