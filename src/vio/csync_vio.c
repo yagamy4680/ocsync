@@ -158,6 +158,7 @@ int csync_vio_init(CSYNC *ctx, const char *module, const char *args) {
   ctx->module.capabilities.time_sync_required  = true;
   ctx->module.capabilities.unix_extensions     = -1; /* detect automatically */
   ctx->module.capabilities.use_send_file_to_propagate = false; /* do use read/write by default */
+  ctx->module.capabilities.do_combiput = false;
 
   /* Load the module capabilities from the module if it implements the it. */
   if( VIO_METHOD_HAS_FUNC(m, get_capabilities)) {
@@ -174,6 +175,8 @@ int csync_vio_init(CSYNC *ctx, const char *module, const char *args) {
             ctx->module.capabilities.unix_extensions );
   CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "capabilities: use send_file: %s",
             ctx->module.capabilities.use_send_file_to_propagate ? "yes" : "no" );
+  CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE, "capabilities: do_combiput: %s",
+            ctx->module.capabilities.do_combiput ? "yes" : "no" );
 
   /* Some basic checks */
   if (m->method_table_size == 0) {
@@ -352,6 +355,26 @@ int csync_vio_sendfile(CSYNC *ctx, csync_vio_handle_t *sfp, csync_vio_handle_t *
       case LOCAL_REPLICA:
         rc = ctx->module.method->sendfile(dst->method_handle, sfp->method_handle);
         break;
+    }
+
+    return rc;
+}
+
+int csync_vio_combiput(CSYNC *ctx, char *src, char *dst, csync_vio_file_stat_t *st ) {
+    int rc = 0;
+
+    if(!( ctx->module.method &&
+          VIO_METHOD_HAS_FUNC(ctx->module.method, combiput))) {
+        CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "No method combiput for module" );
+    } else {
+        switch(ctx->replica) {
+        case REMOTE_REPLICA:
+            rc = ctx->module.method->combiput(src, dst, st);
+            break;
+        case LOCAL_REPLICA:
+            rc = ctx->module.method->combiput(src, dst, st);
+            break;
+        }
     }
 
     return rc;

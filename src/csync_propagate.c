@@ -88,6 +88,15 @@ static bool _use_fd_based_push(CSYNC *ctx)
     return false;
 }
 
+static bool _do_combiput(CSYNC *ctx)
+{
+    if(!ctx) return false;
+
+    if( ctx->module.capabilities.do_combiput ) return true;
+    return false;
+}
+
+
 static const char*_get_md5( CSYNC *ctx, const char *path ) {
   const char *md5 = NULL;
   char *buf = NULL;
@@ -162,349 +171,362 @@ static int _csync_push_file(CSYNC *ctx, csync_file_stat_t *st) {
       break;
   }
 
-  /* Open the source file */
-  ctx->replica = srep;
-  flags = O_RDONLY|O_NOFOLLOW;
+  if( _do_combiput(ctx) ) {
+      csync_vio_file_stat_t *vst = csync_vio_file_stat_new();
+
+      vst->mode  = st->mode;
+      vst->mtime = st->modtime;
+      vst->md5   = c_strdup( st->md5 );
+      vst->size  = st->size;
+
+      /* combiput takes the src and dest file */
+      rc = csync_vio_combiput(ctx, suri, duri, vst );
+      csync_vio_file_stat_destroy(vst);
+  } else {
+
+      /* Open the source file */
+      ctx->replica = srep;
+      flags = O_RDONLY|O_NOFOLLOW;
 #ifdef O_NOATIME
-  /* O_NOATIME can only be set by the owner of the file or the superuser */
-  if (st->uid == ctx->pwd.uid || ctx->pwd.euid == 0) {
-    flags |= O_NOATIME;
-  }
+      /* O_NOATIME can only be set by the owner of the file or the superuser */
+      if (st->uid == ctx->pwd.uid || ctx->pwd.euid == 0) {
+          flags |= O_NOATIME;
+      }
 #endif
-  sfp = csync_vio_open(ctx, suri, flags, 0);
-  if (sfp == NULL) {
-    if (errno == ENOMEM) {
-      rc = -1;
-    } else {
-      rc = 1;
-    }
-
-    strerror_r(errno, errbuf, sizeof(errbuf));
-    CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-        "file: %s, command: open(O_RDONLY), error: %s",
-        suri, errbuf );
-
-    goto out;
-  }
-
-  if (_push_to_tmp_first(ctx)) {
-      /* create the temporary file name */
-#ifdef _WIN32
-      if (asprintf(&turi, "%s.~XXXXXX", duri) < 0) {
-#else
-      /* split up the path */
-      int re = 0;
-      if(duri) {
-          char *path = c_dirname(duri);
-          char *base = c_basename(duri);
-
-          if( path ) {
-              re = asprintf(&turi, "%s/.%s.~XXXXXX", path, base);
+      sfp = csync_vio_open(ctx, suri, flags, 0);
+      if (sfp == NULL) {
+          if (errno == ENOMEM) {
+              rc = -1;
           } else {
-              re = asprintf(&turi,".%s.~XXXXXX", base);
+              rc = 1;
           }
-          SAFE_FREE(path);
-          SAFE_FREE(base);
-      }
-      if (re < 0) {
-#endif
-          rc = -1;
-          goto out;
-      }
 
-      /* We just want a random file name here, open checks if the file exists. */
-      if (c_tmpname(turi) < 0) {
-          rc = -1;
-          goto out;
-      }
-  } else {
-      /* write to the target file directly as the HTTP server does it atomically */
-      if (asprintf(&turi, "%s", duri) < 0) {
-          rc = -1;
-          goto out;
-      }
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,
-                "Remote repository atomar push enabled for %s (%d).", turi, ctx->current);
-
-  }
-
-  /* Create the destination file */
-  ctx->replica = drep;
-  while ((dfp = csync_vio_open(ctx, turi, O_CREAT|O_EXCL|O_WRONLY|O_NOCTTY,
-          C_FILE_MODE)) == NULL) {
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,
-          "file: %s, command: open(O_CREAT), error: %d",
-          duri, errno);
-
-    switch (errno) {
-      case EEXIST:
-        if (count++ > 10) {
-          CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-              "file: %s, command: open(O_CREAT), error: max count exceeded",
-              duri);
-          rc = 1;
-          goto out;
-        }
-        if(_push_to_tmp_first(ctx)) {
-          if (c_tmpname(turi) < 0) {
-            rc = -1;
-            goto out;
-          }
-        }
-        break;
-      case ENOENT:
-        /* get the directory name */
-        SAFE_FREE(tdir);
-        tdir = c_dirname(turi);
-        if (tdir == NULL) {
-          rc = -1;
-          goto out;
-        }
-
-        if( prev_tdir && c_streq(tdir, prev_tdir) ) {
-            /* we're looping */
-            CSYNC_LOG(CSYNC_LOG_PRIORITY_WARN,
-                      "dir: %s, loop in mkdir detected!", tdir);
-            rc = 1;
-            goto out;
-        }
-        SAFE_FREE(prev_tdir);
-        prev_tdir = c_strdup(tdir);
-
-        if (csync_vio_mkdirs(ctx, tdir, C_DIR_MODE) < 0) {
           strerror_r(errno, errbuf, sizeof(errbuf));
-          CSYNC_LOG(CSYNC_LOG_PRIORITY_WARN,
-              "dir: %s, command: mkdirs, error: %s",
-              tdir, errbuf);
-        }
-        break;
-      case ENOMEM:
-        rc = -1;
-        strerror_r(errno, errbuf, sizeof(errbuf));
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-            "file: %s, command: open(O_CREAT), error: %s",
-            turi, errbuf);
-        goto out;
-        break;
-      default:
-        strerror_r(errno, errbuf, sizeof(errbuf));
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-            "file: %s, command: open(O_CREAT), error: %s",
-            turi, errbuf);
-        rc = 1;
-        goto out;
-        break;
-    }
-
-  }
-
-  /* copy file */
-  if( _use_fd_based_push(ctx) ) {
-      if (ctx->current == REMOTE_REPLICA)
-	    csync_win32_set_file_hidden(turi, true);
-
-      rc = csync_vio_sendfile( ctx, sfp, dfp );
-
-      if (ctx->current == REMOTE_REPLICA)
-        csync_win32_set_file_hidden(turi, false);
-
-      if( rc != 0 ) {
-          strerror_r(errno,  errbuf, sizeof(errbuf));
           CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                    "file: %s, command: sendfile, error: %s from errno %d",
-                    suri, errbuf, errno);
+                    "file: %s, command: open(O_RDONLY), error: %s",
+                    suri, errbuf );
+
           goto out;
       }
-  } else {
-      for (;;) {
-          ctx->replica = srep;
-          bread = csync_vio_read(ctx, sfp, buf, MAX_XFER_BUF_SIZE);
 
-          if (bread < 0) {
-              /* read error */
-              strerror_r(errno,  errbuf, sizeof(errbuf));
+      if (_push_to_tmp_first(ctx)) {
+          /* create the temporary file name */
+#ifdef _WIN32
+          if (asprintf(&turi, "%s.~XXXXXX", duri) < 0) {
+#else
+          /* split up the path */
+          int re = 0;
+          if(duri) {
+              char *path = c_dirname(duri);
+              char *base = c_basename(duri);
+
+              if( path ) {
+                  re = asprintf(&turi, "%s/.%s.~XXXXXX", path, base);
+              } else {
+                  re = asprintf(&turi,".%s.~XXXXXX", base);
+              }
+              SAFE_FREE(path);
+              SAFE_FREE(base);
+          }
+          if (re < 0) {
+#endif
+              rc = -1;
+              goto out;
+          }
+
+          /* We just want a random file name here, open checks if the file exists. */
+          if (c_tmpname(turi) < 0) {
+              rc = -1;
+              goto out;
+          }
+      } else {
+          /* write to the target file directly as the HTTP server does it atomically */
+          if (asprintf(&turi, "%s", duri) < 0) {
+              rc = -1;
+              goto out;
+          }
+          CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,
+                    "Remote repository atomar push enabled for %s (%d).", turi, ctx->current);
+
+      }
+
+      /* Create the destination file */
+      ctx->replica = drep;
+      while ((dfp = csync_vio_open(ctx, turi, O_CREAT|O_EXCL|O_WRONLY|O_NOCTTY,
+                                   C_FILE_MODE)) == NULL) {
+          CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,
+                    "file: %s, command: open(O_CREAT), error: %d",
+                    duri, errno);
+
+          switch (errno) {
+          case EEXIST:
+              if (count++ > 10) {
+                  CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                            "file: %s, command: open(O_CREAT), error: max count exceeded",
+                            duri);
+                  rc = 1;
+                  goto out;
+              }
+              if(_push_to_tmp_first(ctx)) {
+                  if (c_tmpname(turi) < 0) {
+                      rc = -1;
+                      goto out;
+                  }
+              }
+              break;
+          case ENOENT:
+              /* get the directory name */
+              SAFE_FREE(tdir);
+              tdir = c_dirname(turi);
+              if (tdir == NULL) {
+                  rc = -1;
+                  goto out;
+              }
+
+              if( prev_tdir && c_streq(tdir, prev_tdir) ) {
+                  /* we're looping */
+                  CSYNC_LOG(CSYNC_LOG_PRIORITY_WARN,
+                            "dir: %s, loop in mkdir detected!", tdir);
+                  rc = 1;
+                  goto out;
+              }
+              SAFE_FREE(prev_tdir);
+              prev_tdir = c_strdup(tdir);
+
+              if (csync_vio_mkdirs(ctx, tdir, C_DIR_MODE) < 0) {
+                  strerror_r(errno, errbuf, sizeof(errbuf));
+                  CSYNC_LOG(CSYNC_LOG_PRIORITY_WARN,
+                            "dir: %s, command: mkdirs, error: %s",
+                            tdir, errbuf);
+              }
+              break;
+          case ENOMEM:
+              rc = -1;
+              strerror_r(errno, errbuf, sizeof(errbuf));
               CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                        "file: %s, command: read, error: %s",
-                        suri, errbuf);
+                        "file: %s, command: open(O_CREAT), error: %s",
+                        turi, errbuf);
+              goto out;
+              break;
+          default:
+              strerror_r(errno, errbuf, sizeof(errbuf));
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, command: open(O_CREAT), error: %s",
+                        turi, errbuf);
               rc = 1;
               goto out;
-          } else if (bread == 0) {
-              /* done */
               break;
           }
 
-          ctx->replica = drep;
-          bwritten = csync_vio_write(ctx, dfp, buf, bread);
+      }
 
-          if (bwritten < 0 || bread != bwritten) {
-              strerror_r(errno, errbuf, sizeof(errbuf));
+      /* copy file */
+      if( _use_fd_based_push(ctx) ) {
+          if (ctx->current == REMOTE_REPLICA)
+              csync_win32_set_file_hidden(turi, true);
+
+          rc = csync_vio_sendfile( ctx, sfp, dfp );
+
+          if (ctx->current == REMOTE_REPLICA)
+              csync_win32_set_file_hidden(turi, false);
+
+          if( rc != 0 ) {
+              strerror_r(errno,  errbuf, sizeof(errbuf));
               CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                        "file: %s, command: write, error: bread = %zu, bwritten = %zu - %s",
-                        duri,
-                        bread,
-                        bwritten,
-                        errbuf);
-              rc = 1;
+                        "file: %s, command: sendfile, error: %s from errno %d",
+                        suri, errbuf, errno);
               goto out;
           }
+      } else {
+          for (;;) {
+              ctx->replica = srep;
+              bread = csync_vio_read(ctx, sfp, buf, MAX_XFER_BUF_SIZE);
+
+              if (bread < 0) {
+                  /* read error */
+                  strerror_r(errno,  errbuf, sizeof(errbuf));
+                  CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                            "file: %s, command: read, error: %s",
+                            suri, errbuf);
+                  rc = 1;
+                  goto out;
+              } else if (bread == 0) {
+                  /* done */
+                  break;
+              }
+
+              ctx->replica = drep;
+              bwritten = csync_vio_write(ctx, dfp, buf, bread);
+
+              if (bwritten < 0 || bread != bwritten) {
+                  strerror_r(errno, errbuf, sizeof(errbuf));
+                  CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                            "file: %s, command: write, error: bread = %zu, bwritten = %zu - %s",
+                            duri,
+                            bread,
+                            bwritten,
+                            errbuf);
+                  rc = 1;
+                  goto out;
+              }
+          }
       }
-  }
-  ctx->replica = srep;
-  if (csync_vio_close(ctx, sfp) < 0) {
-    strerror_r(errno, errbuf, sizeof(errbuf));
-    CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-        "file: %s, command: close, error: %s",
-        suri,
-        errbuf);
-  }
-  sfp = NULL;
+      ctx->replica = srep;
+      if (csync_vio_close(ctx, sfp) < 0) {
+          strerror_r(errno, errbuf, sizeof(errbuf));
+          CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                    "file: %s, command: close, error: %s",
+                    suri,
+                    errbuf);
+      }
+      sfp = NULL;
 
-  ctx->replica = drep;
-  if (csync_vio_close(ctx, dfp) < 0) {
-    dfp = NULL;
-    switch (errno) {
-    /* stop if no space left or quota exceeded */
-    case ENOSPC:
-    case EDQUOT:
-      strerror_r(errno, errbuf, sizeof(errbuf));
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                "file: %s, command: close, error: %s",
-                turi,
-                errbuf);
-      rc = -1;
-      goto out;
-      break;
-    default:
-      strerror_r(errno, errbuf, sizeof(errbuf));
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                "file: %s, command: close, error: %s",
-                turi,
-                errbuf);
-      break;
-    }
-  }
-  dfp = NULL;
+      ctx->replica = drep;
+      if (csync_vio_close(ctx, dfp) < 0) {
+          dfp = NULL;
+          switch (errno) {
+          /* stop if no space left or quota exceeded */
+          case ENOSPC:
+          case EDQUOT:
+              strerror_r(errno, errbuf, sizeof(errbuf));
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, command: close, error: %s",
+                        turi,
+                        errbuf);
+              rc = -1;
+              goto out;
+              break;
+          default:
+              strerror_r(errno, errbuf, sizeof(errbuf));
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, command: close, error: %s",
+                        turi,
+                        errbuf);
+              break;
+          }
+      }
+      dfp = NULL;
 
-  if( ctx->module.capabilities.do_post_copy_stat ) {
-    /*
+      if( ctx->module.capabilities.do_post_copy_stat ) {
+          /*
      * Check filesize
      * In case the transport is secure and/or the stat is expensive, this check
      * could be skipped through module capabilities definitions.
      */
 
-    ctx->replica = drep;
-    tstat = csync_vio_file_stat_new();
-    if (tstat == NULL) {
-      strerror_r(errno, errbuf, sizeof(errbuf));
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                "file: %s, command: stat, error: %s",
-                turi,
-                errbuf);
-      rc = -1;
-      goto out;
-    }
+          ctx->replica = drep;
+          tstat = csync_vio_file_stat_new();
+          if (tstat == NULL) {
+              strerror_r(errno, errbuf, sizeof(errbuf));
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, command: stat, error: %s",
+                        turi,
+                        errbuf);
+              rc = -1;
+              goto out;
+          }
 
-    if (csync_vio_stat(ctx, turi, tstat) < 0) {
-      switch (errno) {
-      case ENOMEM:
-        rc = -1;
-        break;
-      default:
-        rc = 1;
-        break;
+          if (csync_vio_stat(ctx, turi, tstat) < 0) {
+              switch (errno) {
+              case ENOMEM:
+                  rc = -1;
+                  break;
+              default:
+                  rc = 1;
+                  break;
+              }
+              strerror_r(errno, errbuf, sizeof(errbuf));
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, command: stat, error: %s",
+                        turi,
+                        errbuf);
+              goto out;
+          }
+
+          if (st->size != tstat->size) {
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, error: incorrect filesize (size: %jd should be %jd)",
+                        turi, tstat->size, st->size);
+              rc = 1;
+              goto out;
+          }
+
+          if( st->md5 ) {
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "UUUU MD5 sum: %s", st->md5);
+          } else {
+              if( tstat->md5 ) {
+                  CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "Target MD5 sum is %s", tstat->md5 );
+                  if(st->md5) SAFE_FREE(st->md5);
+                  st->md5 = c_strdup(tstat->md5 );
+              } else {
+                  CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "MD5 sum is empty");
+              }
+          }
       }
-      strerror_r(errno, errbuf, sizeof(errbuf));
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                "file: %s, command: stat, error: %s",
-                turi,
-                errbuf);
-      goto out;
-    }
 
-    if (st->size != tstat->size) {
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                "file: %s, error: incorrect filesize (size: %jd should be %jd)",
-                turi, tstat->size, st->size);
-      rc = 1;
-      goto out;
-    }
-
-    if( st->md5 ) {
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "UUUU MD5 sum: %s", st->md5);
-    } else {
-      if( tstat->md5 ) {
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "Target MD5 sum is %s", tstat->md5 );
-        if(st->md5) SAFE_FREE(st->md5);
-        st->md5 = c_strdup(tstat->md5 );
-      } else {
-        CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "MD5 sum is empty");
+      if (_push_to_tmp_first(ctx)) {
+          /* override original file */
+          ctx->replica = drep;
+          if (csync_vio_rename(ctx, turi, duri) < 0) {
+              switch (errno) {
+              case ENOMEM:
+                  rc = -1;
+                  break;
+              default:
+                  rc = 1;
+                  break;
+              }
+              strerror_r(errno, errbuf, sizeof(errbuf));
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, command: rename, error: %s",
+                        duri,
+                        errbuf);
+              goto out;
+          }
       }
-    }
-  }
-
-  if (_push_to_tmp_first(ctx)) {
-    /* override original file */
-    ctx->replica = drep;
-    if (csync_vio_rename(ctx, turi, duri) < 0) {
-      switch (errno) {
-      case ENOMEM:
-        rc = -1;
-        break;
-      default:
-        rc = 1;
-        break;
+      /* set mode only if it is not the default mode */
+      if ((st->mode & 07777) != C_FILE_MODE) {
+          if (csync_vio_chmod(ctx, duri, st->mode) < 0) {
+              switch (errno) {
+              case ENOMEM:
+                  rc = -1;
+                  break;
+              default:
+                  rc = 1;
+                  break;
+              }
+              strerror_r(errno, errbuf, sizeof(errbuf));
+              CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
+                        "file: %s, command: chmod, error: %s",
+                        duri,
+                        errbuf);
+              goto out;
+          }
       }
-      strerror_r(errno, errbuf, sizeof(errbuf));
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-                 "file: %s, command: rename, error: %s",
-                  duri,
-                  errbuf);
-       goto out;
-    }
-  }
-  /* set mode only if it is not the default mode */
-  if ((st->mode & 07777) != C_FILE_MODE) {
-    if (csync_vio_chmod(ctx, duri, st->mode) < 0) {
-      switch (errno) {
-        case ENOMEM:
-          rc = -1;
-          break;
-        default:
-          rc = 1;
-          break;
+
+      /* set owner and group if possible */
+      if (ctx->pwd.euid == 0) {
+          csync_vio_chown(ctx, duri, st->uid, st->gid);
       }
-      strerror_r(errno, errbuf, sizeof(errbuf));
-      CSYNC_LOG(CSYNC_LOG_PRIORITY_ERROR,
-          "file: %s, command: chmod, error: %s",
-          duri,
-          errbuf);
-      goto out;
-    }
-  }
 
-  /* set owner and group if possible */
-  if (ctx->pwd.euid == 0) {
-    csync_vio_chown(ctx, duri, st->uid, st->gid);
-  }
+      /* sync time */
+      times[0].tv_sec = times[1].tv_sec = st->modtime;
+      times[0].tv_usec = times[1].tv_usec = 0;
 
-  /* sync time */
-  times[0].tv_sec = times[1].tv_sec = st->modtime;
-  times[0].tv_usec = times[1].tv_usec = 0;
-
-  ctx->replica = drep;
-  csync_vio_utimes(ctx, duri, times);
+      ctx->replica = drep;
+      csync_vio_utimes(ctx, duri, times);
 
 
-  /* For remote repos, after the utimes call, the ID has changed again */
-  /* do a stat on the target again to get a valid md5 */
-  tmd5 = _get_md5(ctx, st->path);
-  CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "FINAL MD5: %s", tmd5 ? tmd5 : "<null>");
+      /* For remote repos, after the utimes call, the ID has changed again */
+      /* do a stat on the target again to get a valid md5 */
+      tmd5 = _get_md5(ctx, st->path);
+      CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "FINAL MD5: %s", tmd5 ? tmd5 : "<null>");
 
-  if(tmd5) {
-      SAFE_FREE(st->md5);
-      st->md5 = tmd5;
-  }
-
+      if(tmd5) {
+          SAFE_FREE(st->md5);
+          st->md5 = tmd5;
+      }
+  } /* end else combiput */
   /* set instruction for the statedb merger */
   st->instruction = CSYNC_INSTRUCTION_UPDATED;
 

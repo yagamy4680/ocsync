@@ -43,6 +43,8 @@ int csync_vio_close(CSYNC *ctx, csync_vio_handle_t *handle);
 ssize_t csync_vio_read(CSYNC *ctx, csync_vio_handle_t *fhandle, void *buf, size_t count);
 ssize_t csync_vio_write(CSYNC *ctx, csync_vio_handle_t *fhandle, const void *buf, size_t count);
 int csync_vio_sendfile(CSYNC *ctx,  csync_vio_handle_t *sfp, csync_vio_handle_t *dst);
+int csync_vio_combiput(CSYNC *ctx, char *src, char *dst, csync_vio_file_stat_t *st );
+
 off_t csync_vio_lseek(CSYNC *ctx, csync_vio_handle_t *fhandle, off_t offset, int whence);
 
 csync_vio_handle_t *csync_vio_opendir(CSYNC *ctx, const char *name);

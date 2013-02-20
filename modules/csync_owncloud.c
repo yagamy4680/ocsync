@@ -1387,8 +1387,9 @@ static char*_lastDir = NULL;
  *  bool time_sync_required  - oC does not require the time sync
  *  int  unix_extensions     - oC supports unix extensions.
  *  bool propagate_on_fd     - oC supports the send_file method.
+ *  bool have_combiput       - oC supports the combiput command.
  */
-static csync_vio_capabilities_t _owncloud_capabilities = { true, false, false, 0, true };
+static csync_vio_capabilities_t _owncloud_capabilities = { true, false, false, 0, true, true };
 
 static csync_vio_capabilities_t *owncloud_capabilities(void)
 {
@@ -1564,6 +1565,17 @@ static csync_vio_method_handle_t *owncloud_creat(const char *durl, mode_t mode) 
     owncloud_write( handle, NULL, 0 );
 
     return handle;
+}
+
+static int owncloud_combiput( char *suri, char *duri, csync_vio_file_stat_t *st )
+{
+    int rc = 0;
+
+    /* open the source file */
+
+    /* create the request   */
+
+
 }
 
 static int owncloud_sendfile(csync_vio_method_handle_t *src, csync_vio_method_handle_t *hdl ) {
@@ -2071,6 +2083,7 @@ csync_vio_method_t _method = {
     .read = owncloud_read,
     .write = owncloud_write,
     .sendfile = owncloud_sendfile,
+    .combiput = owncloud_combiput,
     .lseek = owncloud_lseek,
     .opendir = owncloud_opendir,
     .closedir = owncloud_closedir,

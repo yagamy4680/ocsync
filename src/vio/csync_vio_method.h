@@ -44,6 +44,7 @@ struct csync_vio_capabilities_s {
  int  unix_extensions;     /* -1: do csync detection, 0: no unix extensions,
                                1: extensions available */
  bool use_send_file_to_propagate; /* if set, the module rather copies files using send_file than read and write */
+ bool do_combiput;         /* module has a put function that does all.        */
 };
 
 typedef struct csync_vio_capabilities_s csync_vio_capabilities_t;
@@ -60,6 +61,7 @@ typedef int (*csync_method_close_fn)(csync_vio_method_handle_t *fhandle);
 typedef ssize_t (*csync_method_read_fn)(csync_vio_method_handle_t *fhandle, void *buf, size_t count);
 typedef ssize_t (*csync_method_write_fn)(csync_vio_method_handle_t *fhandle, const void *buf, size_t count);
 typedef int (*csync_method_sendfile_fn)(csync_vio_method_handle_t *src, csync_vio_method_handle_t *dst);
+typedef int (*csync_method_combiput_fn)(char *suri, char *duri, csync_vio_file_stat_t* st );
 typedef off_t (*csync_method_lseek_fn)(csync_vio_method_handle_t *fhandle, off_t offset, int whence);
 
 typedef csync_vio_method_handle_t *(*csync_method_opendir_fn)(const char *name);
@@ -104,6 +106,7 @@ struct csync_vio_method_s {
         csync_method_chown_fn chown;
         csync_method_utimes_fn utimes;
         csync_method_sendfile_fn sendfile;
+        csync_method_combiput_fn combiput;
         csync_method_set_property_fn set_property;
         csync_method_get_error_string_fn get_error_string;
 };
