@@ -504,6 +504,7 @@ int csync_propagate(CSYNC *ctx) {
     return -1;
   }
   ctx->error_code = CSYNC_ERR_NONE;
+  ctx->propagates = 0;
 
   rc = csync_init_progress(ctx);
   if (rc < 0) {
@@ -523,7 +524,6 @@ int csync_propagate(CSYNC *ctx) {
 
   /* Reconciliation for local replica */
   csync_gettime(&start);
-  ctx->propagates = 0;
 
   ctx->current = LOCAL_REPLICA;
   ctx->replica = ctx->local.type;
@@ -719,8 +719,10 @@ static int  _merge_and_write_statedb(CSYNC *ctx) {
   /* if we have a statedb */
   if (ctx->statedb.db != NULL) {
     /* and we have successfully synchronized */
+    CSYNC_LOG(CSYNC_LOG_PRIORITY_DEBUG, "XXXXX==================> Propagates Count: %d", ctx->propagates);
+
     if (ctx->status >= CSYNC_STATUS_DONE
-            && ctx->propagates) {        /* did we really have propagates? */
+        && ctx->propagates > 0) {        /* did we really have propagates? */
       /* merge trees */
       if (csync_merge_file_trees(ctx) < 0) {
         C_STRERROR(errno, errbuf, sizeof(errbuf));

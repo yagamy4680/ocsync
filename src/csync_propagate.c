@@ -1750,7 +1750,6 @@ int csync_init_progress(CSYNC *ctx) {
 
 void csync_finalize_progress(CSYNC *ctx) {
   if (ctx->overall_progress.file_count >0) {
-
     _notify_progress(ctx, NULL, CSYNC_NOTIFY_FINISHED_SYNC_SEQUENCE);
   }
 
