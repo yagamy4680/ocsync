@@ -1551,6 +1551,7 @@ static int _csync_propagation_file_count_visitor(void *obj, void *data) {
       switch (st->instruction) {
         case CSYNC_INSTRUCTION_NEW:
         case CSYNC_INSTRUCTION_SYNC:
+        case CSYNC_INSTRUCTION_REMOVE:
         case CSYNC_INSTRUCTION_CONFLICT:
           ctx->overall_progress.file_count++;
           ctx->overall_progress.byte_sum += st->size;
@@ -1596,24 +1597,28 @@ static int _csync_propagation_file_visitor(void *obj, void *data) {
             CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,"FAIL NEW: %s",st->path);
             goto err;
           }
+          ctx->propagates++;
           break;
       case CSYNC_INSTRUCTION_SYNC:
           if ((rc = _csync_sync_file(ctx, st)) < 0) {
             CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,"FAIL SYNC: %s",st->path);
             goto err;
           }
+          ctx->propagates++;
           break;
         case CSYNC_INSTRUCTION_REMOVE:
           if ((rc = _csync_remove_file(ctx, st)) < 0) {
             CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,"FAIL REMOVE: %s",st->path);
             goto err;
           }
+          ctx->propagates++;
           break;
         case CSYNC_INSTRUCTION_CONFLICT:
           CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,"case CSYNC_INSTRUCTION_CONFLICT: %s",st->path);
           if ((rc = _csync_conflict_file(ctx, st)) < 0) {
             goto err;
           }
+          ctx->propagates++;
           break;
         default:
           break;
@@ -1660,22 +1665,26 @@ static int _csync_propagation_dir_visitor(void *obj, void *data) {
           if (_csync_new_dir(ctx, st) < 0) {
             goto err;
           }
+          ctx->propagates++;
           break;
         case CSYNC_INSTRUCTION_SYNC:
           if (_csync_sync_dir(ctx, st) < 0) {
             goto err;
           }
+          ctx->propagates++;
           break;
         case CSYNC_INSTRUCTION_CONFLICT:
           CSYNC_LOG(CSYNC_LOG_PRIORITY_TRACE,"directory attributes different");
           if (_csync_sync_dir(ctx, st) < 0) {
             goto err;
           }
+          ctx->propagates++;
           break;
         case CSYNC_INSTRUCTION_REMOVE:
           if (_csync_remove_dir(ctx, st) < 0) {
             goto err;
           }
+          ctx->propagates++;
           break;
         case CSYNC_INSTRUCTION_RENAME:
           /* there can't be a rename for dirs. See updater. */
@@ -1694,7 +1703,13 @@ err:
 }
 
 int csync_propagate_rename_file(CSYNC *ctx, csync_file_stat_t *st) {
-    return _csync_rename_file(ctx, st);
+    int rc;
+
+    rc = _csync_rename_file(ctx, st);
+    if( rc > -1) {
+        ctx->propagates++;
+    }
+    return rc;
 }
 
 /* Count the files to transmit for both up- and download, ie. in both replicas. */

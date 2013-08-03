@@ -523,6 +523,7 @@ int csync_propagate(CSYNC *ctx) {
 
   /* Reconciliation for local replica */
   csync_gettime(&start);
+  ctx->propagates = 0;
 
   ctx->current = LOCAL_REPLICA;
   ctx->replica = ctx->local.type;
@@ -718,7 +719,8 @@ static int  _merge_and_write_statedb(CSYNC *ctx) {
   /* if we have a statedb */
   if (ctx->statedb.db != NULL) {
     /* and we have successfully synchronized */
-    if (ctx->status >= CSYNC_STATUS_DONE) {
+    if (ctx->status >= CSYNC_STATUS_DONE
+            && ctx->propagates) {        /* did we really have propagates? */
       /* merge trees */
       if (csync_merge_file_trees(ctx) < 0) {
         C_STRERROR(errno, errbuf, sizeof(errbuf));

@@ -149,6 +149,7 @@ struct csync_s {
   csync_overall_progress_t overall_progress;
 
   struct csync_progressinfo_s *progress_info;
+  int propagates;
 
   /* replica we are currently walking */
   enum csync_replica_e current;
