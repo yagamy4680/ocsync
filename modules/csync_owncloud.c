@@ -130,6 +130,12 @@ static int verify_sslcert(void *userdata, int failures,
     const ne_ssl_certificate *cert = certificate;
 
     (void) userdata;
+
+#ifdef OWNCLOUD_ACCEPT_UNTRUSTED_CERTIFICATE
+    DEBUG_WEBDAV("always accept untrusted certificate from owncloud server.");
+    return 0;
+#else
+    DEBUG_WEBDAV("OWNCLOUD_ACCEPT_UNTRUSTED_CERTIFICATE is not defined.");
     memset( problem, 0, LEN );
 
     while( cert ) {
@@ -178,7 +184,8 @@ static int verify_sslcert(void *userdata, int failures,
         }
     }
     DEBUG_WEBDAV("## VERIFY_SSL CERT: %d", ret  );
-      return ret;
+    return ret;
+#endif
 }
 
 /*
@@ -1914,6 +1921,9 @@ csync_vio_method_t *vio_module_init(const char *method_name, const char *args,
     _authcb = cb;
     _connected = 0;  /* triggers dav_connect to go through the whole neon setup */
 
+    DEBUG_WEBDAV("vio_module_init, method_name = %s", method_name);
+    DEBUG_WEBDAV("vio_module_init, args = %s", args);
+
     memset(&dav_session, 0, sizeof(dav_session));
 
     return &_method;
@@ -1934,7 +1944,7 @@ void vio_module_shutdown(csync_vio_method_t *method) {
     SAFE_FREE( dav_session.session_key);
     SAFE_FREE( dav_session.error_string );
 
-    /* DEBUG_WEBDAV( "********** vio_module_shutdown" ); */
+    DEBUG_WEBDAV( "********** vio_module_shutdown" );
 }
 
 /* vim: set ts=4 sw=4 et cindent: */

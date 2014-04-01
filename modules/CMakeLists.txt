@@ -64,6 +64,9 @@ endif (LIBSSH_FOUND)
 
 if (NEON_FOUND)
     include_directories( ${NEON_INCLUDE_DIRS} )
+    if (ACCEPT_UNTRUSTED_CERTIFICATE)
+      add_definitions( -DOWNCLOUD_ACCEPT_UNTRUSTED_CERTIFICATE )
+    endif (ACCEPT_UNTRUSTED_CERTIFICATE)
     macro_add_plugin(${OWNCLOUD_PLUGIN} csync_owncloud.c csync_owncloud_recursive_propfind.c csync_owncloud_util.c)
     target_link_libraries(${OWNCLOUD_PLUGIN} ${CSYNC_LIBRARY} ${NEON_LIBRARIES} ${HTTPBF_LIBRARY})
 
